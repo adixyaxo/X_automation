@@ -2,6 +2,7 @@ import tweepy
 import pandas as pd
 from datetime import datetime
 import os
+import time
 
 # --- LOAD SECRETS (From GitHub Actions) ---
 API_KEY = os.getenv("API_KEY")
@@ -23,7 +24,6 @@ client = tweepy.Client(
 
 def post_tweet(content):
     try:
-        # Posting via API v2
         response = client.create_tweet(text=content)
         print(f"✅ Posted: {content[:40]}... (ID: {response.data['id']})")
         return True
@@ -36,40 +36,51 @@ def check_schedule():
         print("Error: posts.csv not found.")
         return
 
-    df = pd.read_csv(CSV_FILE)
+    try:
+        df = pd.read_csv(CSV_FILE)
+    except Exception as e:
+        print(f"Error reading CSV: {e}")
+        return
     
-    # Get current time (UTC is standard on servers, so we adjust logic or use server time)
-    # GitHub servers are UTC. India is UTC+5:30. 
-    # To keep it simple, we will assume the dates/times in CSV are meant to be 'Server Time' 
-    # OR we just check if "Scheduled Time <= Now".
+    # Server time (UTC). If you want IST, we need to adjust, 
+    # but usually keeping everything in Server Time is easier.
+    # If your CSV is generated with "local" times, this simple comparison works
+    # provided the server logic is consistent.
     
     now = datetime.now()
-    current_date = now.strftime("%Y-%m-%d")
-    
     updated = False
+    posts_made = 0
 
     for index, row in df.iterrows():
-        # Combine date and time
-        scheduled_str = f"{row['date']} {row['time']}"
+        # Optimization: Skip rows already posted
+        if str(row['is_posted']) == 'True':
+            continue
+            
+        # Parse the scheduled time
         try:
+            scheduled_str = f"{row['date']} {row['time']}"
             scheduled_dt = datetime.strptime(scheduled_str, "%Y-%m-%d %H:%M")
         except ValueError:
             continue
 
         # Logic: If time has passed AND it hasn't been posted yet
-        if scheduled_dt <= now and str(row['is_posted']) == 'False':
+        if scheduled_dt <= now:
             
-            print(f"🚀 Found due tweet: {row['time']}")
+            print(f"🚀 Due Now: {row['time']} | Content: {row['content'][:30]}...")
             
             if post_tweet(row['content']):
                 df.at[index, 'is_posted'] = True
                 updated = True
+                posts_made += 1
+                
+                # Safety Sleep: Don't spam the API instantly if multiple are due
+                time.sleep(2) 
 
     if updated:
         df.to_csv(CSV_FILE, index=False)
-        print("💾 Database updated.")
+        print(f"💾 Database updated. {posts_made} tweets posted.")
     else:
-        print("💤 No tweets due.")
+        print("💤 No tweets due right now.")
 
 if __name__ == "__main__":
     check_schedule()
