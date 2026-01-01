@@ -4,11 +4,12 @@ from datetime import datetime, timedelta
 import os
 import pytz
 import time
-import random  # Import random for the sleep timer
+import random
 
 # --- CONFIGURATION ---
-MIN_DELAY = 60    # Minimum wait: 60 seconds (1 minute)
-MAX_DELAY = 600  # Maximum wait: 600 seconds (10 minutes)
+# The bot will wait between 1 minute and 20 minutes before checking the schedule
+MIN_DELAY = 60    
+MAX_DELAY = 600
 
 # --- LOAD SECRETS ---
 API_KEY = os.getenv("API_KEY")
@@ -19,7 +20,6 @@ ACCESS_SECRET = os.getenv("ACCESS_SECRET")
 CSV_FILE = 'posts.csv'
 
 # --- AUTHENTICATION ---
-# Using User Context (Access Tokens) for Read/Write permission
 client = tweepy.Client(
     consumer_key=API_KEY,
     consumer_secret=API_SECRET,
@@ -27,29 +27,10 @@ client = tweepy.Client(
     access_token_secret=ACCESS_SECRET
 )
 
-# API v1.1 for Image Uploads
-auth = tweepy.OAuth1UserHandler(
-    API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET
-)
-api = tweepy.API(auth)
-
-def post_tweet(content, image_filename=None):
+def post_tweet(content):
     try:
-        media_id = None
-        if image_filename and pd.notna(image_filename):
-            if os.path.exists(image_filename):
-                print(f"📸 Uploading image: {image_filename}...")
-                media_upload = api.media_upload(filename=image_filename)
-                media_id = media_upload.media_id
-            else:
-                print(f"⚠️ Image '{image_filename}' not found. Posting text only.")
-
-        if media_id:
-            response = client.create_tweet(text=content, media_ids=[media_id])
-        else:
-            response = client.create_tweet(text=content)
-            
-        print(f"✅ Posted: {content[:30]}... (ID: {response.data['id']})")
+        response = client.create_tweet(text=content)
+        print(f"✅ Posted: {content[:40]}... (ID: {response.data['id']})")
         return True
     except Exception as e:
         print(f"❌ Error posting: {e}")
@@ -57,12 +38,11 @@ def post_tweet(content, image_filename=None):
 
 def check_schedule():
     # --- RANDOM DELAY START ---
-    # This prevents the bot from always posting at exactly XX:00 or XX:30
     delay_seconds = random.randint(MIN_DELAY, MAX_DELAY)
     delay_minutes = delay_seconds // 60
     print(f"🎲 Randomizing execution... Waiting {delay_minutes} minutes before checking schedule.")
     
-    # Pause the script here
+    # Pause the script here to mimic human irregularity
     time.sleep(delay_seconds)
     print("⏰ Waking up now...")
     # --------------------------
@@ -77,7 +57,7 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # Server Time to IST
+    # Server Time (UTC) to IST
     utc_now = datetime.utcnow()
     ist_now = utc_now + timedelta(hours=5, minutes=30)
     print(f"🕒 Current Time (IST): {ist_now.strftime('%Y-%m-%d %H:%M')}")
@@ -98,14 +78,12 @@ def check_schedule():
         if scheduled_dt <= ist_now:
             print(f"🚀 Due Now: {row['time']}")
             
-            image_file = row['image_file'] if 'image_file' in row else None
-            if str(image_file).lower() == 'nan' or str(image_file).strip() == '':
-                image_file = None
-
-            if post_tweet(row['content'], image_file):
+            if post_tweet(row['content']):
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
+                
+                # Small safety sleep between multiple posts
                 time.sleep(2)
 
     if updated:
