@@ -6,8 +6,8 @@ import os
 # --- CONFIGURATION ---
 SOURCE_CSV = "tweets.csv"       
 OUTPUT_CSV = "posts.csv"        
-START_DATE = datetime(2027, 1, 2)   # Updated to 2027 as requested earlier
-END_DATE = datetime(2027, 1, 31)   
+START_DATE = datetime(2026, 1, 2)   # Updated to 2027 as requested earlier
+END_DATE = datetime(2026, 1, 31)   
 
 # --- TIME SETTINGS (14 HOUR WINDOW) ---
 START_HOUR = 10                 # 10:00 AM
