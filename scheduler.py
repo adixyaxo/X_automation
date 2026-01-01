@@ -2,20 +2,20 @@ import tweepy
 import pandas as pd
 from datetime import datetime, timedelta
 import os
-import pytz  # Library for Timezones
+import pytz
+import time
 
 # --- LOAD SECRETS ---
 API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
-BEARER_TOKEN = os.getenv("BEARER_TOKEN")
+# Bearer token removed to prevent 403 Read-Only errors
 
 CSV_FILE = 'posts.csv'
 
-# --- AUTHENTICATION ---
+# --- AUTHENTICATION (User Context Only) ---
 client = tweepy.Client(
-    bearer_token=BEARER_TOKEN,
     consumer_key=API_KEY,
     consumer_secret=API_SECRET,
     access_token=ACCESS_TOKEN,
@@ -42,8 +42,7 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # --- CRITICAL FIX: CONVERT SERVER TIME TO IST ---
-    # GitHub is UTC. We add 5 hours 30 minutes to get IST.
+    # Convert Server Time (UTC) to IST
     utc_now = datetime.utcnow()
     ist_now = utc_now + timedelta(hours=5, minutes=30)
     
@@ -62,15 +61,15 @@ def check_schedule():
         except ValueError:
             continue
 
-        # Check if the scheduled time has passed (using IST)
+        # Check if due
         if scheduled_dt <= ist_now:
-            
             print(f"🚀 Due Now: {row['time']} | Content: {row['content'][:30]}...")
             
             if post_tweet(row['content']):
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
+                time.sleep(2) # Prevent spamming
 
     if updated:
         df.to_csv(CSV_FILE, index=False)
