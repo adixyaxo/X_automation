@@ -10,11 +10,12 @@ API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
-# Bearer token removed to prevent 403 Read-Only errors
+# BEARER_TOKEN removed to force OAuth 1.0a (Write Access)
 
 CSV_FILE = 'posts.csv'
 
-# --- AUTHENTICATION (User Context Only) ---
+# --- AUTHENTICATION ---
+# We use ONLY the API Key and Access Token. This forces Twitter to recognize you as a "User" who can post.
 client = tweepy.Client(
     consumer_key=API_KEY,
     consumer_secret=API_SECRET,
@@ -42,7 +43,7 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # Convert Server Time (UTC) to IST
+    # Convert Server Time to IST
     utc_now = datetime.utcnow()
     ist_now = utc_now + timedelta(hours=5, minutes=30)
     
@@ -69,7 +70,7 @@ def check_schedule():
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
-                time.sleep(2) # Prevent spamming
+                time.sleep(2)
 
     if updated:
         df.to_csv(CSV_FILE, index=False)
