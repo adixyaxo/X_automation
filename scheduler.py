@@ -33,8 +33,14 @@ def post_tweet(content):
         print(f"✅ Posted: {content[:40]}... (ID: {response.data['id']})")
         return True
     except Exception as e:
+        # Check if the error is specifically about "Duplicate Content"
+        if "duplicate" in str(e).lower():
+            print(f"⚠️ Skipped duplicate: {content[:30]}...")
+            return True  # We return True so the bot marks it as 'done' and moves to the next one
+        
         print(f"❌ Error posting: {e}")
         return False
+
 
 def check_schedule():
     # --- RANDOM DELAY START ---
