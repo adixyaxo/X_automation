@@ -4,18 +4,22 @@ from datetime import datetime, timedelta
 import os
 import pytz
 import time
+import random  # Import random for the sleep timer
+
+# --- CONFIGURATION ---
+MIN_DELAY = 60    # Minimum wait: 60 seconds (1 minute)
+MAX_DELAY = 600  # Maximum wait: 600 seconds (10 minutes)
 
 # --- LOAD SECRETS ---
 API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 ACCESS_SECRET = os.getenv("ACCESS_SECRET")
-# BEARER_TOKEN removed to force OAuth 1.0a (Write Access)
 
 CSV_FILE = 'posts.csv'
 
 # --- AUTHENTICATION ---
-# We use ONLY the API Key and Access Token. This forces Twitter to recognize you as a "User" who can post.
+# Using User Context (Access Tokens) for Read/Write permission
 client = tweepy.Client(
     consumer_key=API_KEY,
     consumer_secret=API_SECRET,
@@ -23,16 +27,46 @@ client = tweepy.Client(
     access_token_secret=ACCESS_SECRET
 )
 
-def post_tweet(content):
+# API v1.1 for Image Uploads
+auth = tweepy.OAuth1UserHandler(
+    API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET
+)
+api = tweepy.API(auth)
+
+def post_tweet(content, image_filename=None):
     try:
-        response = client.create_tweet(text=content)
-        print(f"✅ Posted: {content[:40]}... (ID: {response.data['id']})")
+        media_id = None
+        if image_filename and pd.notna(image_filename):
+            if os.path.exists(image_filename):
+                print(f"📸 Uploading image: {image_filename}...")
+                media_upload = api.media_upload(filename=image_filename)
+                media_id = media_upload.media_id
+            else:
+                print(f"⚠️ Image '{image_filename}' not found. Posting text only.")
+
+        if media_id:
+            response = client.create_tweet(text=content, media_ids=[media_id])
+        else:
+            response = client.create_tweet(text=content)
+            
+        print(f"✅ Posted: {content[:30]}... (ID: {response.data['id']})")
         return True
     except Exception as e:
         print(f"❌ Error posting: {e}")
         return False
 
 def check_schedule():
+    # --- RANDOM DELAY START ---
+    # This prevents the bot from always posting at exactly XX:00 or XX:30
+    delay_seconds = random.randint(MIN_DELAY, MAX_DELAY)
+    delay_minutes = delay_seconds // 60
+    print(f"🎲 Randomizing execution... Waiting {delay_minutes} minutes before checking schedule.")
+    
+    # Pause the script here
+    time.sleep(delay_seconds)
+    print("⏰ Waking up now...")
+    # --------------------------
+
     if not os.path.exists(CSV_FILE):
         print("Error: posts.csv not found.")
         return
@@ -43,11 +77,10 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # Convert Server Time to IST
+    # Server Time to IST
     utc_now = datetime.utcnow()
     ist_now = utc_now + timedelta(hours=5, minutes=30)
-    
-    print(f"🕒 Current Server Time (IST): {ist_now.strftime('%Y-%m-%d %H:%M')}")
+    print(f"🕒 Current Time (IST): {ist_now.strftime('%Y-%m-%d %H:%M')}")
     
     updated = False
     posts_made = 0
@@ -62,11 +95,14 @@ def check_schedule():
         except ValueError:
             continue
 
-        # Check if due
         if scheduled_dt <= ist_now:
-            print(f"🚀 Due Now: {row['time']} | Content: {row['content'][:30]}...")
+            print(f"🚀 Due Now: {row['time']}")
             
-            if post_tweet(row['content']):
+            image_file = row['image_file'] if 'image_file' in row else None
+            if str(image_file).lower() == 'nan' or str(image_file).strip() == '':
+                image_file = None
+
+            if post_tweet(row['content'], image_file):
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
