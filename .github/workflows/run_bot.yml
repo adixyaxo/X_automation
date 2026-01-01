@@ -3,10 +3,10 @@ name: Project Sera Scheduler
 on:
   schedule:
     - cron: '*/30 * * * *'  # Runs every 30 minutes
-  workflow_dispatch:      # Allows manual trigger button
+  workflow_dispatch:      # Allows you to click a button to run it manually
 
 permissions:
-  contents: write         # CRITICAL: Allows bot to save CSV changes
+  contents: write         # CRITICAL: Allows the bot to save 'posts.csv' back to the repo
 
 jobs:
   run-bot:
@@ -37,5 +37,6 @@ jobs:
           git config --global user.name "Sera Bot"
           git config --global user.email "bot@projectsera.com"
           git add posts.csv
+          # Only commit if the file changed (i.e. a tweet was posted)
           git commit -m "✅ Auto-update: Tweet posted" || exit 0
           git push
