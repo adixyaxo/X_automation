@@ -1,10 +1,10 @@
 import tweepy
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
-import time
+import pytz  # Library for Timezones
 
-# --- LOAD SECRETS (From GitHub Actions) ---
+# --- LOAD SECRETS ---
 API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
@@ -42,29 +42,28 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # Server time (UTC). If you want IST, we need to adjust, 
-    # but usually keeping everything in Server Time is easier.
-    # If your CSV is generated with "local" times, this simple comparison works
-    # provided the server logic is consistent.
+    # --- CRITICAL FIX: CONVERT SERVER TIME TO IST ---
+    # GitHub is UTC. We add 5 hours 30 minutes to get IST.
+    utc_now = datetime.utcnow()
+    ist_now = utc_now + timedelta(hours=5, minutes=30)
     
-    now = datetime.now()
+    print(f"🕒 Current Server Time (IST): {ist_now.strftime('%Y-%m-%d %H:%M')}")
+    
     updated = False
     posts_made = 0
 
     for index, row in df.iterrows():
-        # Optimization: Skip rows already posted
         if str(row['is_posted']) == 'True':
             continue
             
-        # Parse the scheduled time
         try:
             scheduled_str = f"{row['date']} {row['time']}"
             scheduled_dt = datetime.strptime(scheduled_str, "%Y-%m-%d %H:%M")
         except ValueError:
             continue
 
-        # Logic: If time has passed AND it hasn't been posted yet
-        if scheduled_dt <= now:
+        # Check if the scheduled time has passed (using IST)
+        if scheduled_dt <= ist_now:
             
             print(f"🚀 Due Now: {row['time']} | Content: {row['content'][:30]}...")
             
@@ -72,9 +71,6 @@ def check_schedule():
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
-                
-                # Safety Sleep: Don't spam the API instantly if multiple are due
-                time.sleep(2) 
 
     if updated:
         df.to_csv(CSV_FILE, index=False)
