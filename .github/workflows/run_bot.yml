@@ -1,0 +1,41 @@
+name: Project Sera Scheduler
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Runs every 30 minutes
+  workflow_dispatch:      # Allows manual trigger button
+
+permissions:
+  contents: write         # CRITICAL: Allows bot to save CSV changes
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scheduler
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          API_SECRET: ${{ secrets.API_SECRET }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          ACCESS_SECRET: ${{ secrets.ACCESS_SECRET }}
+          BEARER_TOKEN: ${{ secrets.BEARER_TOKEN }}
+        run: python scheduler.py
+
+      - name: Save Updated CSV
+        run: |
+          git config --global user.name "Sera Bot"
+          git config --global user.email "bot@projectsera.com"
+          git add posts.csv
+          git commit -m "✅ Auto-update: Tweet posted" || exit 0
+          git push
