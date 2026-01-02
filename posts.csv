@@ -3,8 +3,8 @@ date,time,content,is_posted
 2026-01-02,03:15,Wisdom is knowing what to ignore.,True
 2026-01-02,03:16,Do you agree? Energy speaks.,True
 2026-01-02,03:13,Be a ghost. Let the results haunt them.,True
-2026-01-02,11:18,print('Frontend makes it look good. Backend makes it work. I do both.'),False
-2026-01-02,11:24,Observation: Dating is cool but have you ever fixed a bug at 3 AM?,False
+2026-01-02,11:18,print('Frontend makes it look good. Backend makes it work. I do both.'),True
+2026-01-02,11:24,Observation: Dating is cool but have you ever fixed a bug at 3 AM?,True
 2026-01-02,11:42,Do the work.,False
 2026-01-02,11:44,"Do you agree? MERN stack is cool, but understanding the fundamentals is cooler.",False
 2026-01-02,11:48,print('Schrödinger's cat would have loved my buggy code: dead and alive at the same time.'),False
