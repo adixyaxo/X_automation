@@ -6,13 +6,13 @@ date,time,content,is_posted
 2026-01-02,11:18,print('Frontend makes it look good. Backend makes it work. I do both.'),True
 2026-01-02,11:24,Observation: Dating is cool but have you ever fixed a bug at 3 AM?,True
 2026-01-02,11:42,Do the work.,False
-2026-01-02,11:44,"Do you agree? MERN stack is cool, but understanding the fundamentals is cooler.",False
-2026-01-02,11:48,print('Schrödinger's cat would have loved my buggy code: dead and alive at the same time.'),False
-2026-01-02,11:49,"if it was easy, everyone would have a 95 cgpa //",False
-2026-01-02,11:55,speed creates friction.,False
-2026-01-02,11:58,Observation: Build in silence. Break the internet when you launch.,False
-2026-01-02,12:26,Read this carefully: Comfort is the enemy of progress.,False
-2026-01-02,13:17,Note to self: Levels.,False
+2026-01-02,11:44,"Do you agree? MERN stack is cool, but understanding the fundamentals is cooler.",True
+2026-01-02,11:48,print('Schrödinger's cat would have loved my buggy code: dead and alive at the same time.'),True
+2026-01-02,11:49,"if it was easy, everyone would have a 95 cgpa //",True
+2026-01-02,11:55,speed creates friction.,True
+2026-01-02,11:58,Observation: Build in silence. Break the internet when you launch.,True
+2026-01-02,12:26,Read this carefully: Comfort is the enemy of progress.,True
+2026-01-02,13:17,Note to self: Levels.,True
 2026-01-02,13:19,Note to self: Do the work.,False
 2026-01-02,16:03,Note to self: Wisdom is knowing what to ignore.,False
 2026-01-02,17:40,"i speak three languages: english, hindi, and python //",False
