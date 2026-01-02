@@ -7,9 +7,13 @@ import time
 import random
 
 # --- CONFIGURATION ---
-# The bot will wait between 1 minute and 20 minutes before checking the schedule
-MIN_DELAY = 60    
-MAX_DELAY = 600
+# 1. Start Delay: Wait 1-10 mins before starting (Random start time)
+START_MIN_DELAY = 60    
+START_MAX_DELAY = 600
+
+# 2. Inter-Tweet Delay: Wait 60-120 seconds between tweets if multiple are due
+TWEET_DELAY_MIN = 60
+TWEET_DELAY_MAX = 120
 
 # --- LOAD SECRETS ---
 API_KEY = os.getenv("API_KEY")
@@ -28,31 +32,48 @@ client = tweepy.Client(
 )
 
 def post_tweet(content):
+    """
+    Returns: 
+    - "success": Posted successfully
+    - "duplicate": Content was duplicate (safe to mark as done)
+    - "ratelimit": Critical 429 error (must stop)
+    - "error": Generic error (retry later)
+    """
     try:
         response = client.create_tweet(text=content)
         print(f"✅ Posted: {content[:40]}... (ID: {response.data['id']})")
-        return True
+        return "success"
     except Exception as e:
-        # Check if the error is specifically about "Duplicate Content"
-        if "duplicate" in str(e).lower():
-            print(f"⚠️ Skipped duplicate: {content[:30]}...")
-            return True  # We return True so the bot marks it as 'done' and moves to the next one
+        error_msg = str(e).lower()
         
-        print(f"❌ Error posting: {e}")
-        return False
+        # Case 1: Duplicate Content (Twitter blocks identical tweets)
+        if "duplicate" in error_msg:
+            print(f"⚠️ Skipped duplicate: {content[:30]}...")
+            return "duplicate"
+        
+        # Case 2: Rate Limit (429) - CRITICAL STOP
+        if "429" in error_msg or "too many requests" in error_msg:
+            print(f"⛔ RATE LIMIT HIT (429). Stopping script immediately.")
+            return "ratelimit"
+            
+        # Case 3: Forbidden (403) - Usually Auth issues or Ban
+        if "403" in error_msg:
+            print(f"❌ 403 Forbidden (Check keys or permissions): {error_msg}")
+            return "error"
 
+        print(f"❌ Unknown Error: {e}")
+        return "error"
 
 def check_schedule():
-    # --- RANDOM DELAY START ---
-    delay_seconds = random.randint(MIN_DELAY, MAX_DELAY)
+    # --- 1. RANDOM START DELAY ---
+    # This prevents the bot from running at exact times like 10:00:00
+    delay_seconds = random.randint(START_MIN_DELAY, START_MAX_DELAY)
     delay_minutes = delay_seconds // 60
     print(f"🎲 Randomizing execution... Waiting {delay_minutes} minutes before checking schedule.")
-    
-    # Pause the script here to mimic human irregularity
     time.sleep(delay_seconds)
     print("⏰ Waking up now...")
-    # --------------------------
 
+    # --- 2. LOAD DATABASE ---
     if not os.path.exists(CSV_FILE):
         print("Error: posts.csv not found.")
         return
@@ -63,7 +84,7 @@ def check_schedule():
         print(f"Error reading CSV: {e}")
         return
     
-    # Server Time (UTC) to IST
+    # --- 3. CHECK TIME (IST) ---
     utc_now = datetime.utcnow()
     ist_now = utc_now + timedelta(hours=5, minutes=30)
     print(f"🕒 Current Time (IST): {ist_now.strftime('%Y-%m-%d %H:%M')}")
@@ -71,7 +92,9 @@ def check_schedule():
     updated = False
     posts_made = 0
 
+    # --- 4. PROCESS TWEETS ---
     for index, row in df.iterrows():
+        # Skip if already posted
         if str(row['is_posted']) == 'True':
             continue
             
@@ -81,20 +104,42 @@ def check_schedule():
         except ValueError:
             continue
 
+        # Check if "Due" (Scheduled Time <= Current Time)
         if scheduled_dt <= ist_now:
             print(f"🚀 Due Now: {row['time']}")
             
-            if post_tweet(row['content']):
+            status = post_tweet(row['content'])
+            
+            # --- HANDLE RESULTS ---
+            if status == "success":
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
                 
-                # Small safety sleep between multiple posts
-                time.sleep(2)
+                # SAFETY DELAY: Wait 1-2 minutes before posting the NEXT one
+                wait_time = random.randint(TWEET_DELAY_MIN, TWEET_DELAY_MAX)
+                print(f"⏳ Waiting {wait_time}s before next check to avoid spam flags...")
+                time.sleep(wait_time)
+            
+            elif status == "duplicate":
+                # Mark as posted so we don't get stuck in a loop
+                df.at[index, 'is_posted'] = True
+                updated = True
+                time.sleep(5) # Short wait for logic errors
+                
+            elif status == "ratelimit":
+                # Emergency Exit: Save progress and kill script
+                print("🛑 Stopping loop to protect account.")
+                break
+            
+            elif status == "error":
+                print("⚠️ Skipping this tweet due to error.")
+                time.sleep(10)
 
+    # --- 5. SAVE CHANGES ---
     if updated:
         df.to_csv(CSV_FILE, index=False)
-        print(f"💾 Database updated. {posts_made} tweets posted.")
+        print(f"💾 Database updated. {posts_made} tweets processed.")
     else:
         print("💤 No tweets due right now.")
 
