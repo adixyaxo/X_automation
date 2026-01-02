@@ -2,7 +2,7 @@ name: Project Sera Scheduler
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Runs every 30 minutes
+    - cron: '*/15 * * * *'  # Runs every 30 minutes
   workflow_dispatch:      # Allows you to click a button to run it manually
 
 permissions:
