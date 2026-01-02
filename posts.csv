@@ -1,17 +1,17 @@
 date,time,content,is_posted
-2026-01-02,10:00,print('I’m not anti-social. I’m just in private repository mode.'),False
+2026-01-02,10:00,print('I’m not anti-social. I’m just in private repository mode.'),True
 2026-01-02,10:03,"Observation: I speak three languages: English, Hindi, and Python.",True
 2026-01-02,10:29,Note to self: A high IQ is useless without high agency.,True
 2026-01-02,10:33,Create or consume. Choose. #Python #Engineering #Focus,True
-2026-01-02,10:48,Observation: Build in silence. Break the internet when you launch.,False
-2026-01-02,11:06,converting caffeine into logic //,False
-2026-01-02,11:07,Be a ghost. Let the results haunt them.,False
-2026-01-02,11:55,print('Schrödinger's cat would have loved my buggy code: dead and alive at the same time.'),False
-2026-01-02,12:13,"History doesn't repeat itself, but human nature does. #Python #Engineering #Focus",False
-2026-01-02,13:25,Do the work.,False
-2026-01-02,13:36,create or consume. choose.,False
-2026-01-02,14:22,Observation: Dating is cool but have you ever fixed a bug at 3 AM?,False
-2026-01-02,15:04,algorithm for success: while(alive) { grind(); },False
+2026-01-02,10:48,Observation: Build in silence. Break the internet when you launch.,True
+2026-01-02,11:06,converting caffeine into logic //,True
+2026-01-02,11:07,Be a ghost. Let the results haunt them.,True
+2026-01-02,11:55,print('Schrödinger's cat would have loved my buggy code: dead and alive at the same time.'),True
+2026-01-02,12:13,"History doesn't repeat itself, but human nature does. #Python #Engineering #Focus",True
+2026-01-02,13:25,Do the work.,True
+2026-01-02,13:36,create or consume. choose.,True
+2026-01-02,14:22,Observation: Dating is cool but have you ever fixed a bug at 3 AM?,True
+2026-01-02,15:04,algorithm for success: while(alive) { grind(); },True
 2026-01-02,16:20,"Do you agree? MERN stack is cool, but understanding the fundamentals is cooler.",False
 2026-01-02,16:44,"Read this carefully: MERN stack is cool, but understanding the fundamentals is cooler.",False
 2026-01-02,16:52,print('Frontend makes it look good. Backend makes it work. I do both.'),False
