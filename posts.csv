@@ -1,8 +1,8 @@
 date,time,content,is_posted
 2026-01-02,10:00,print('I’m not anti-social. I’m just in private repository mode.'),False
-2026-01-02,10:03,"Observation: I speak three languages: English, Hindi, and Python.",False
-2026-01-02,10:29,Note to self: A high IQ is useless without high agency.,False
-2026-01-02,10:33,Create or consume. Choose. #Python #Engineering #Focus,False
+2026-01-02,10:03,"Observation: I speak three languages: English, Hindi, and Python.",True
+2026-01-02,10:29,Note to self: A high IQ is useless without high agency.,True
+2026-01-02,10:33,Create or consume. Choose. #Python #Engineering #Focus,True
 2026-01-02,10:48,Observation: Build in silence. Break the internet when you launch.,False
 2026-01-02,11:06,converting caffeine into logic //,False
 2026-01-02,11:07,Be a ghost. Let the results haunt them.,False
