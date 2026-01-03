@@ -7,11 +7,11 @@ import time
 import random
 
 # --- CONFIGURATION ---
-# 1. Start Delay: Wait 1-10 mins before starting (Random start time)
+# 1. Start Delay: Randomly wait 1-10 mins before starting to avoid patterns
 START_MIN_DELAY = 60    
 START_MAX_DELAY = 600
 
-# 2. Inter-Tweet Delay: Wait 60-120 seconds between tweets if multiple are due
+# 2. Inter-Tweet Delay: Wait 60-120 seconds between multiple tweets
 TWEET_DELAY_MIN = 60
 TWEET_DELAY_MAX = 120
 
@@ -23,7 +23,15 @@ ACCESS_SECRET = os.getenv("ACCESS_SECRET")
 
 CSV_FILE = 'posts.csv'
 
+# --- SAFETY CHECK ---
+# This ensures we don't try to connect with empty keys
+if not API_KEY or not ACCESS_TOKEN:
+    print("❌ Critical Error: Secrets are missing from environment.")
+    print("👉 Check GitHub Settings > Secrets > Actions.")
+    exit()
+
 # --- AUTHENTICATION ---
+# Using strict User Context (OAuth 1.0a) which you verified works in debug.py
 client = tweepy.Client(
     consumer_key=API_KEY,
     consumer_secret=API_SECRET,
@@ -35,9 +43,9 @@ def post_tweet(content):
     """
     Returns: 
     - "success": Posted successfully
-    - "duplicate": Content was duplicate (safe to mark as done)
+    - "duplicate": Content was duplicate (safe to skip)
     - "ratelimit": Critical 429 error (must stop)
-    - "error": Generic error (retry later)
+    - "error": Generic error
     """
     try:
         response = client.create_tweet(text=content)
@@ -46,19 +54,20 @@ def post_tweet(content):
     except Exception as e:
         error_msg = str(e).lower()
         
-        # Case 1: Duplicate Content (Twitter blocks identical tweets)
+        # Case 1: Duplicate Content
         if "duplicate" in error_msg:
             print(f"⚠️ Skipped duplicate: {content[:30]}...")
             return "duplicate"
         
-        # Case 2: Rate Limit (429) - CRITICAL STOP
+        # Case 2: Rate Limit (CRITICAL STOP)
         if "429" in error_msg or "too many requests" in error_msg:
             print(f"⛔ RATE LIMIT HIT (429). Stopping script immediately.")
             return "ratelimit"
             
-        # Case 3: Forbidden (403) - Usually Auth issues or Ban
+        # Case 3: Forbidden (Auth/Permission)
         if "403" in error_msg:
-            print(f"❌ 403 Forbidden (Check keys or permissions): {error_msg}")
+            print(f"❌ 403 Forbidden: {error_msg}")
+            # If this happens now, the keys are still mismatching or the app has a specific block
             return "error"
 
         print(f"❌ Unknown Error: {e}")
@@ -66,10 +75,8 @@ def post_tweet(content):
 
 def check_schedule():
     # --- 1. RANDOM START DELAY ---
-    # This prevents the bot from running at exact times like 10:00:00
     delay_seconds = random.randint(START_MIN_DELAY, START_MAX_DELAY)
-    delay_minutes = delay_seconds // 60
-    print(f"🎲 Randomizing execution... Waiting {delay_minutes} minutes before checking schedule.")
+    print(f"🎲 Randomizing execution... Waiting {delay_seconds//60} minutes.")
     time.sleep(delay_seconds)
     print("⏰ Waking up now...")
 
@@ -94,7 +101,6 @@ def check_schedule():
 
     # --- 4. PROCESS TWEETS ---
     for index, row in df.iterrows():
-        # Skip if already posted
         if str(row['is_posted']) == 'True':
             continue
             
@@ -104,33 +110,28 @@ def check_schedule():
         except ValueError:
             continue
 
-        # Check if "Due" (Scheduled Time <= Current Time)
         if scheduled_dt <= ist_now:
             print(f"🚀 Due Now: {row['time']}")
             
             status = post_tweet(row['content'])
             
-            # --- HANDLE RESULTS ---
             if status == "success":
                 df.at[index, 'is_posted'] = True
                 updated = True
                 posts_made += 1
                 
-                # SAFETY DELAY: Wait 1-2 minutes before posting the NEXT one
+                # Safety delay before the next tweet
                 wait_time = random.randint(TWEET_DELAY_MIN, TWEET_DELAY_MAX)
-                print(f"⏳ Waiting {wait_time}s before next check to avoid spam flags...")
+                print(f"⏳ Waiting {wait_time}s before next tweet...")
                 time.sleep(wait_time)
             
             elif status == "duplicate":
-                # Mark as posted so we don't get stuck in a loop
-                df.at[index, 'is_posted'] = True
+                df.at[index, 'is_posted'] = True # Mark done so we don't retry forever
                 updated = True
-                time.sleep(5) # Short wait for logic errors
+                time.sleep(5)
                 
             elif status == "ratelimit":
-                # Emergency Exit: Save progress and kill script
-                print("🛑 Stopping loop to protect account.")
-                break
+                break # Stop everything
             
             elif status == "error":
                 print("⚠️ Skipping this tweet due to error.")
